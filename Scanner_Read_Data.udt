@@ -1,0 +1,15 @@
+﻿TYPE "Scanner_Read_Data"
+VERSION : 0.1
+   STRUCT
+      Send_Data : Bool;
+      Scanner_ID : Int;
+      Order_Scanner_ID : Int;
+      Scaner_Scan_Status : Int;
+      Barcode_Number : Int;
+      Scanner_Read_Int : Int;
+      Error_Comment : String;
+      Scan_Time : Date_And_Time;
+   END_STRUCT;
+
+END_TYPE
+

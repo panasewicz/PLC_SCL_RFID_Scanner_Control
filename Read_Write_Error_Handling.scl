@@ -1,0 +1,39 @@
+﻿FUNCTION "Read_Write_Error_Handling" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      RFID_Reader_Status : Int;
+   END_VAR
+
+   VAR_OUTPUT 
+      Recived_Data : "Scanner_Read_Data";
+      RFID_Write_Data : "Scanner_Write_Data";
+   END_VAR
+
+
+BEGIN
+	CASE #RFID_Reader_Status OF
+	    0:
+	        //Success
+	        #Recived_Data.Error_Comment := '';
+	        #RFID_Write_Data.Error_Comment := '';
+	    1:
+	        //ErrorNoTag
+	        #Recived_Data.Error_Comment := 'ErrorNoTag';
+	        #RFID_Write_Data.Error_Comment := 'ErrorNoTag';
+	    2:
+	        //ErrorTooManyTags
+	        #Recived_Data.Error_Comment := 'ErrorTooManyTags';
+	        #RFID_Write_Data.Error_Comment := 'ErrorTooManyTags';
+	    3:
+	        //ErrorInvalidIndex
+	        #Recived_Data.Error_Comment := 'ErrorInvalidIndex';
+	        #RFID_Write_Data.Error_Comment := 'ErrorInvalidIndex';
+	    ELSE
+	        //InvalidCommandNumber
+	        #Recived_Data.Error_Comment := 'InvalidCommandNumber';
+	        #RFID_Write_Data.Error_Comment := 'InvalidCommandNumber';
+	END_CASE;
+	
+END_FUNCTION
+

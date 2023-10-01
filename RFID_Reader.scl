@@ -1,0 +1,123 @@
+﻿FUNCTION_BLOCK "RFID_Reader"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      Scanner_ID : Int;
+      Order_Scanner_ID : Int;
+      Memory_Index : Int;
+      Sent_To_SQL : Bool;
+      RFID_Execute_Command : Bool;
+      Scanner_Executing_OFF : Bool;
+      Jam_Forward : Bool;
+      Command_Parameter : Int;
+      RFID_Read_Data_Input : Int;
+      RFID_Reader_Status : Int;
+   END_VAR
+
+   VAR_OUTPUT 
+      Scanner_Execute_Command_Output : Bool;
+      Scanner_WorkMode_Output : Int;
+      Recived_Data : "Scanner_Read_Data";
+      SQL_Communication_Trigger : Bool;
+      Write_Data_To_Label : Int;
+      RFID_Memory_Index : Int;
+   END_VAR
+
+   VAR_IN_OUT 
+      RFID_Write_Data : "Scanner_Write_Data";
+   END_VAR
+
+   VAR 
+      Scanning_Active : Bool;
+      Scanning_Triger : Bool;
+      Scanning_Stop : Bool;
+      R_Trig_Scanning_Active {InstructionName := 'R_TRIG'; LibVersion := '1.0'} : R_TRIG;
+      R_Trig_Scanning_DeActive {InstructionName := 'F_TRIG'; LibVersion := '1.0'} : F_TRIG;
+      Cloak_Error_Status { S7_SetPoint := 'True'} : Int;
+      Cloak_Error_Status_2 : Int;
+      One_Shot_Delay {InstructionName := 'TOF_TIME'; LibVersion := '1.0'} : TOF_TIME;
+      WriteTime { S7_SetPoint := 'True'} : Date_And_Time;
+      ReadTime : Date_And_Time;
+   END_VAR
+
+BEGIN
+	// Parameters 
+	
+	#Scanner_WorkMode_Output := #Command_Parameter;
+	
+	// Scanning Handling
+	// 
+	#R_Trig_Scanning_Active(CLK := #RFID_Execute_Command);
+	#R_Trig_Scanning_DeActive(CLK := #Scanner_Executing_OFF);
+	
+	
+	IF #R_Trig_Scanning_Active.Q = True THEN
+	    #Scanning_Triger := TRUE;
+	END_IF;
+	
+	IF #R_Trig_Scanning_DeActive.Q = True THEN
+	    #Scanning_Stop := True;
+	END_IF;
+	
+	IF #Scanning_Triger = True AND NOT #Scanning_Active THEN
+	    #Scanning_Active := True;
+	    #Scanner_Execute_Command_Output := True;
+	    #Scanning_Stop := False;
+	ELSIF #Scanning_Active = True AND #Scanning_Stop = True THEN
+	    #Scanning_Active := False;
+	    #Scanner_Execute_Command_Output := False;
+	    #Scanning_Triger := False;
+	END_IF;
+	
+	
+	// Scanner_Status_Handling 
+	IF #Scanning_Active = True AND NOT #Jam_Forward THEN
+	    #Recived_Data.Scaner_Scan_Status := #RFID_Reader_Status;
+	    
+	    CASE #Command_Parameter OF
+	        1:
+	            #Recived_Data.Scanner_Read_Int := 0;
+	            #Recived_Data.Barcode_Number := #RFID_Read_Data_Input;
+	            #Cloak_Error_Status := RD_SYS_T(OUT => #ReadTime);
+	            #Recived_Data.Scan_Time := #ReadTime;
+	            #Recived_Data.Scanner_ID := #Scanner_ID;
+	            #Recived_Data.Order_Scanner_ID := #Order_Scanner_ID;
+	            
+	        2:
+	            #Recived_Data.Barcode_Number := 0;
+	            #RFID_Memory_Index := #Memory_Index;
+	            #Recived_Data.Scanner_Read_Int := #RFID_Read_Data_Input;
+	            #Cloak_Error_Status := RD_SYS_T(OUT => #ReadTime);
+	            #Recived_Data.Scan_Time := #ReadTime;
+	            #Recived_Data.Scanner_ID := #Scanner_ID;
+	            #Recived_Data.Order_Scanner_ID := #Order_Scanner_ID;
+	        3:
+	            IF #RFID_Reader_Status = 0 THEN
+	                #RFID_Memory_Index := #Memory_Index;
+	                #Write_Data_To_Label := #RFID_Write_Data.Write_Int;
+	            END_IF;
+	            #Cloak_Error_Status_2 := RD_SYS_T(OUT => #WriteTime);
+	            #RFID_Write_Data.Scan_Time := #WriteTime;
+	            #RFID_Write_Data.Scanner_ID := #Scanner_ID;
+	    END_CASE;
+	    
+	    
+	    
+	    "Read_Write_Error_Handling"(RFID_Reader_Status := #RFID_Reader_Status,
+	                                Recived_Data => #Recived_Data,
+	                                RFID_Write_Data => #RFID_Write_Data);
+	    
+	END_IF;
+	
+
+// send data to SQL trigger 
+
+	IF #Sent_To_SQL = True THEN
+	    #One_Shot_Delay(IN := #R_Trig_Scanning_DeActive.Q,
+	                    PT := t#15ms,
+	                    Q => #SQL_Communication_Trigger);
+	END_IF;
+	
+	
+END_FUNCTION_BLOCK
+
