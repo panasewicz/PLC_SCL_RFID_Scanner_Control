@@ -17,6 +17,7 @@ For the organization of data transmission and collection, two user data structur
 
 Structures allow the relevant data to be written to a separate PLC database to which the middleware application has been connected. The databases "Scanners_db_Read" and "Scanners_db_Write", are databases that store the data read by the scanner and those that should be written to the label. <br>
 
+## Links
 Programs are fully tasted, presentation in links below: <br>
 <strong> Reading_Data </strong> - https://youtu.be/bo97D2VGU4o <br>
 <strong> Writing_Data </strong> - https://youtu.be/xN_iXLZe4jQ <br>
